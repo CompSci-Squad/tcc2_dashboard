@@ -14,10 +14,38 @@ from scipy.cluster.hierarchy import dendrogram
 from tcc2_dashboard.config import (
     CLASSIFICACAO_COR,
     RECESSOES_NBER,
+    TAB20,
     cor_cluster,
 )
 
-_LAYOUT = {"margin": {"l": 10, "r": 10, "t": 40, "b": 10}, "legend": {"title": None}}
+_FONT = "Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+_EIXO = {
+    "gridcolor": "#EEF1F6",
+    "zerolinecolor": "#CBD5E1",
+    "linecolor": "#CBD5E1",
+    "tickcolor": "#CBD5E1",
+    "ticks": "outside",
+    "automargin": True,
+    "title": {"font": {"size": 12, "color": "#64748B"}},
+}
+TEMPLATE = go.layout.Template(
+    layout={
+        "font": {"family": _FONT, "size": 12.5, "color": "#334155"},
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "colorway": TAB20,
+        "xaxis": _EIXO,
+        "yaxis": _EIXO,
+        "hoverlabel": {
+            "bgcolor": "white",
+            "bordercolor": "#E2E8F0",
+            "font": {"family": _FONT, "size": 12.5, "color": "#0F172A"},
+        },
+        "legend": {"bgcolor": "rgba(0,0,0,0)", "font": {"size": 12}},
+        "title": {"font": {"size": 15, "color": "#0F172A"}},
+    }
+)
+_LAYOUT = {"margin": {"l": 14, "r": 14, "t": 28, "b": 14}, "template": TEMPLATE}
 
 
 def _base(fig: go.Figure, altura: int = 460, **kw) -> go.Figure:
@@ -55,7 +83,7 @@ def tamanhos(rot: pd.DataFrame, selecionado: int | None = None) -> go.Figure:
     fig.update_xaxes(title="Cluster", dtick=1)
     fig.update_yaxes(title="Nº de séries")
     fig.update_layout(clickmode="event+select")
-    return _base(fig, 400, barmode="stack")
+    return _base(fig, 400, barmode="stack", legend={"orientation": "h", "y": 1.12, "x": 0})
 
 
 def r2_por_cluster(rot: pd.DataFrame, corte: float, selecionado: int | None = None) -> go.Figure:
@@ -377,7 +405,7 @@ def heatmap_coeficientes(
         z = np.where(sig, z, np.nan)
     texto = np.where(sig, np.char.add(np.round(z, 2).astype(str), "*"), "")
     ylab = [
-        f"{int(c)} — {rot.loc[rot['cluster'] == c, 'rotulo_curto'].iloc[0][:28]}"
+        f"{int(c)} — {rot.loc[rot['cluster'] == c, 'rotulo_curto'].iloc[0][:36]}"
         for c in reg["cluster"]
     ]
     lim = float(np.nanmax(np.abs(z))) if np.isfinite(z).any() else 1.0

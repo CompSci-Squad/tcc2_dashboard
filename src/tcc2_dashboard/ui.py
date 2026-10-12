@@ -55,9 +55,36 @@ def clique_em_cluster(evento, chave_ultimo: str) -> None:
         st.rerun()
 
 
-def cabecalho(titulo: str, subtitulo: str) -> None:
-    st.title(titulo)
-    st.caption(subtitulo)
+def cabecalho(
+    titulo: str, subtitulo: str, kicker: str = "TCC2 · CICD06", chips: list[str] | None = None
+) -> None:
+    """Cabeçalho da página; com `chips` vira o banner (hero) de abertura."""
+    if chips:
+        tags = "".join(f'<span class="chip">{c}</span>' for c in chips)
+        st.markdown(
+            f'<div class="hero"><div class="kicker">{kicker}</div><h1>{titulo}</h1>'
+            f'<p>{subtitulo}</p><div class="chips">{tags}</div></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<div class="pagehead"><div class="kicker">{kicker}</div><h1>{titulo}</h1>'
+            f"<p>{subtitulo}</p></div>",
+            unsafe_allow_html=True,
+        )
+
+
+def plot(fig, card: bool = True, **kw):
+    """Plotly dentro de um cartão, com o template do dashboard (theme=None) e barra enxuta."""
+    kw.setdefault("width", "stretch")
+    kw.setdefault(
+        "config",
+        {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "autoScale2d"]},
+    )
+    if not card:
+        return st.plotly_chart(fig, theme=None, **kw)
+    with st.container(border=True):
+        return st.plotly_chart(fig, theme=None, **kw)
 
 
 def csv_download(

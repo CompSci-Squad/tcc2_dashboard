@@ -61,9 +61,7 @@ def render() -> None:
         return
 
     j = (pd.Timestamp(janela[0]), pd.Timestamp(janela[1]))
-    st.plotly_chart(
-        charts.centroides(cen, sel, nomes, j, suavizar, recessoes, paineis), width="stretch"
-    )
+    ui.plot(charts.centroides(cen, sel, nomes, j, suavizar, recessoes, paineis), width="stretch")
 
     d = cen.loc[j[0] : j[1], sel]
     resumo = d.agg(["mean", "std", "min", "max"]).T.rename(
@@ -89,7 +87,7 @@ def render() -> None:
     membros = data.clusters().query("cluster == @foco")["serie"].tolist()
     escolhidas = st.multiselect("Séries exibidas", membros, default=membros[:8], key=f"mem_{foco}")
     if escolhidas:
-        st.plotly_chart(
+        ui.plot(
             charts.membros(data.padronizado(), escolhidas, cen[foco], foco, j, recessoes),
             width="stretch",
         )

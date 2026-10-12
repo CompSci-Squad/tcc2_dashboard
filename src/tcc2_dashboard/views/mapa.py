@@ -57,7 +57,7 @@ def render() -> None:
         buscar = st.multiselect("Buscar séries", sorted(meta["serie"]))
 
     fig = charts.pca_dispersao(pca.coords, meta, eixos, cor_por, destacar, nomes, buscar)
-    st.plotly_chart(fig, width="stretch")
+    ui.plot(fig, width="stretch")
     var = pca.variancia
     st.caption(
         "Variância explicada pelos eixos: "
@@ -70,7 +70,7 @@ def render() -> None:
     with c1:
         st.subheader("Critério dos 70 % de variância")
         cum = _variancia()
-        st.plotly_chart(charts.scree(np.array(cum), K), width="stretch")
+        ui.plot(charts.scree(np.array(cum), K), width="stretch")
     with c2:
         st.subheader("Séries por transformação")
         st.markdown(

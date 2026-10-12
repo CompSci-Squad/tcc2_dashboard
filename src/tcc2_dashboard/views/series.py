@@ -34,7 +34,7 @@ def render() -> None:
         )
         janela = c3.slider("Janela móvel (meses)", 12, 120, 60, 6)
 
-        st.plotly_chart(charts.par_series(df, a, b, janela), width="stretch")
+        ui.plot(charts.par_series(df, a, b, janela), width="stretch")
         m = st.columns(4)
         m[0].metric("r de Pearson", f"{corr.loc[a, b]:.3f}")
         m[1].metric(f"Cluster de {a}", cl_de[a])
@@ -68,7 +68,7 @@ def render() -> None:
             series = sorted(series, key=lambda s: (cl_de[s], s))
         else:
             series = sorted(series)
-        st.plotly_chart(charts.heatmap_correlacao(corr.loc[series, series], cl_de), width="stretch")
+        ui.plot(charts.heatmap_correlacao(corr.loc[series, series], cl_de), width="stretch")
         st.caption(
             "Em “Por cluster” os blocos quadrados na diagonal mostram clusters coesos. "
             "Com até 40 séries os nomes aparecem nos eixos."

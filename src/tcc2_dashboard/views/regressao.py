@@ -45,9 +45,7 @@ def render() -> None:
     )
 
     with aba1:
-        st.plotly_chart(
-            charts.heatmap_coeficientes(reg, variaveis, alpha, so_sig, rot), width="stretch"
-        )
+        ui.plot(charts.heatmap_coeficientes(reg, variaveis, alpha, so_sig, rot), width="stretch")
         st.caption("* = significativo ao nível escolhido. Todos os dados estão padronizados.")
         v = data.vif()
         with st.expander("VIF das variáveis de referência (multicolinearidade)"):
@@ -135,6 +133,6 @@ def _regressao_ao_vivo() -> None:
     m[1].metric("Observações", r.n_obs)
     m[2].metric("Durbin-Watson", f"{r.dw:.2f}")
     m[3].metric("Breusch-Godfrey p", f"{r.bg_p:.1e}")
-    st.plotly_chart(charts.coeficientes_cluster(r.tabela, ALPHA), width="stretch")
-    st.plotly_chart(charts.residuos(r.residuos), width="stretch")
+    ui.plot(charts.coeficientes_cluster(r.tabela, ALPHA), width="stretch")
+    ui.plot(charts.residuos(r.residuos), width="stretch")
     st.dataframe(r.tabela, width="stretch")

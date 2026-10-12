@@ -11,8 +11,10 @@ from tcc2_dashboard.config import R2_FORTE
 def render() -> None:
     ui.cabecalho(
         "Agrupamento de séries do FRED-MD",
-        "TCC2 · CICD06 — K-Means (k = 19) sobre 118 séries macroeconômicas; "
-        "cada ponto é uma SÉRIE inteira, não um mês.",
+        "K-Means sobre 118 séries macroeconômicas mensais. Cada ponto é uma série inteira, "
+        "descrita pelo seu comportamento no tempo, não uma observação mensal.",
+        kicker="TCC2 · CICD06 · Santos et al. (2021)",
+        chips=["FRED-MD 2026-04", "1965 → 2026", "k = 19", "Regressão HAC", "Bootstrap em blocos"],
     )
     rot = data.rotulados()
     cl = data.clusters()
@@ -42,7 +44,7 @@ def render() -> None:
     esq, dir_ = st.columns(2)
     with esq:
         st.subheader("Tamanho dos clusters")
-        ev = st.plotly_chart(
+        ev = ui.plot(
             charts.tamanhos(rot, foco),
             on_select="rerun",
             selection_mode="points",
@@ -52,7 +54,7 @@ def render() -> None:
         ui.clique_em_cluster(ev, "ult_tamanhos")
     with dir_:
         st.subheader("Poder explicativo da regressão (R²)")
-        ev = st.plotly_chart(
+        ev = ui.plot(
             charts.r2_por_cluster(rot, corte, foco),
             on_select="rerun",
             selection_mode="points",
@@ -75,7 +77,8 @@ def render() -> None:
     a, b = st.columns([3, 2])
     with a:
         st.markdown(f"#### Cluster {foco} · {linha['rotulo_curto']}")
-        st.markdown(linha["rotulo_proposto"])
+        if linha["rotulo_proposto"] != linha["rotulo_curto"]:
+            st.markdown(linha["rotulo_proposto"])
         st.markdown("**Séries-membro:** " + ", ".join(f"`{s}`" for s in membros))
     with b:
         m1, m2 = st.columns(2)
@@ -83,12 +86,17 @@ def render() -> None:
         m2.metric("Variável dominante", linha["variavel_dominante"])
         m1.metric("Durbin-Watson", f"{linha['durbin_watson']:.2f}")
         m2.metric("Classe", linha["classe"])
-    st.line_chart(data.centroides()[[foco]].rename(columns={foco: f"Centroide do cluster {foco}"}))
+    cen = data.centroides()
+    ui.plot(
+        charts.centroides(
+            cen, [foco], data.rotulo_curto(), (cen.index[0], cen.index[-1]), 1, True, False
+        )
+    )
 
     st.divider()
     st.subheader("Mapa hierárquico: cluster → séries")
     st.caption("Área proporcional ao nº de séries; cor = R². Clique para dar zoom em um cluster.")
-    st.plotly_chart(charts.treemap(cl, rot), width="stretch")
+    ui.plot(charts.treemap(cl, rot), width="stretch")
 
     with st.expander("Tabela completa dos clusters"):
         mostra = rot[

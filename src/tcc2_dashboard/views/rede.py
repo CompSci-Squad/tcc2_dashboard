@@ -54,7 +54,7 @@ def render() -> None:
 
     if arestas.empty:
         st.warning("Nenhuma aresta acima do limiar com os filtros atuais.")
-    st.plotly_chart(
+    ui.plot(
         charts.rede(pos, arestas, cl_de, nomes, pos_on, neg_on, destacar, rotular),
         width="stretch",
     )

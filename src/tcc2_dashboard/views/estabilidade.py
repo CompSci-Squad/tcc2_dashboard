@@ -54,7 +54,7 @@ def _bootstrap() -> None:
         extra = pd.DataFrame(
             {"cluster": list(ao_vivo), "jaccard_medio": [np.mean(v) for v in ao_vivo.values()]}
         )
-    st.plotly_chart(charts.bootstrap(boot, extra), width="stretch")
+    ui.plot(charts.bootstrap(boot, extra), width="stretch")
     st.dataframe(boot, hide_index=True, width="stretch")
 
     st.markdown("##### Rodar o bootstrap ao vivo")
@@ -87,7 +87,7 @@ def _bootstrap() -> None:
         st.rerun()
     dist = st.session_state.get("boot_vivo_dist")
     if dist:
-        st.plotly_chart(charts.hist_jaccard(dist), width="stretch")
+        ui.plot(charts.hist_jaccard(dist), width="stretch")
         resumo = pd.DataFrame(
             {
                 c: {"Jaccard médio": np.mean(v), "desvio": np.std(v, ddof=1), "B": len(v)}
@@ -102,7 +102,7 @@ def _ward_vs_kmeans() -> None:
     cl_de = data.cluster_de()
     z = _ward()
     k = st.slider("Cortar o dendrograma em k grupos", 2, 40, K, key="k_ward")
-    st.plotly_chart(charts.dendrograma(z, df.columns.tolist(), cl_de, k), width="stretch")
+    ui.plot(charts.dendrograma(z, df.columns.tolist(), cl_de, k), width="stretch")
     st.caption(
         "Cada folha é uma série, colorida pelo cluster do K-Means: folhas da mesma cor "
         "contíguas indicam que os dois métodos concordam."
@@ -114,7 +114,7 @@ def _ward_vs_kmeans() -> None:
     c[0].metric("ARI (K-Means × Ward)", f"{ari:.3f}")
     c[1].metric("NMI (K-Means × Ward)", f"{nmi:.3f}")
     tab = pd.crosstab(pd.Series(_labels_originais(), name="kmeans"), pd.Series(lw, name="ward"))
-    st.plotly_chart(charts.contingencia(tab, "K-Means", "Ward"), width="stretch")
+    ui.plot(charts.contingencia(tab, "K-Means", "Ward"), width="stretch")
 
     st.markdown("##### Onde caem os clusters do K-Means no Ward (k = 19, notebook)")
     wc = data.ward_comparacao()
@@ -141,7 +141,7 @@ def _what_if_k() -> None:
     if k == K:
         st.success("k = 19 reproduz exatamente a partição do notebook (ARI = 1).")
 
-    st.plotly_chart(charts.varredura_k(_varredura(5, 30), k), width="stretch")
+    ui.plot(charts.varredura_k(_varredura(5, 30), k), width="stretch")
     st.caption(
         "Varredura com n_init = 5 (rápida). A silhueta é baixa em geral: os clusters "
         "macroeconômicos não são bolhas bem separadas."

@@ -6,6 +6,7 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).parent / "dados"
 FIG_DIR = DATA_DIR / "figuras"
+ASSETS_DIR = Path(__file__).parent / "assets"
 
 # Parâmetros fixados no notebook (Santos et al., 2021 aplicado ao FRED-MD)
 K = 19
@@ -28,10 +29,10 @@ CLASSIFICACAO_ROTULO = {
     "sem_classificacao": "Fraco (R² ≤ 0,4)",
 }
 CLASSIFICACAO_COR = {
-    "Sanidade: mesma família": "#7f8c8d",
-    "Sanidade: construção": "#b8a99a",
-    "Achado genuíno": "#d62728",
-    "Fraco (R² ≤ 0,4)": "#aec7e8",
+    "Sanidade: mesma família": "#64748B",
+    "Sanidade: construção": "#A8B3C4",
+    "Achado genuíno": "#E11D48",
+    "Fraco (R² ≤ 0,4)": "#C7D2FE",
 }
 
 # tab20, igual às figuras do notebook (cor do cluster = cid % 20)

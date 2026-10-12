@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from tcc2_dashboard import style
+from tcc2_dashboard.config import ASSETS_DIR
 from tcc2_dashboard.views import (
     centroides,
     estabilidade,
@@ -25,6 +27,8 @@ def main() -> None:
             "About": "TCC2 CICD06 — agrupamento de séries do FRED-MD (Santos et al., 2021)."
         },
     )
+    style.aplicar()
+    st.logo(str(ASSETS_DIR / "logo.svg"), icon_image=str(ASSETS_DIR / "icon.svg"), size="large")
     paginas = {
         "Resultados": [
             st.Page(
