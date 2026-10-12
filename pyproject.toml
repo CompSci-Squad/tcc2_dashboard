@@ -1,0 +1,64 @@
+[project]
+name = "tcc2-dashboard"
+version = "0.1.0"
+description = "Dashboard interativo do TCC2 (CICD06): agrupamento de séries do FRED-MD"
+readme = "README.md"
+authors = [{ name = "do-ald533", email = "douglas.aldred533@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.40",
+    "plotly>=5.24",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "scikit-learn>=1.5",
+    "statsmodels>=0.14",
+    "networkx>=3.3",
+]
+
+[project.scripts]
+tcc2-dashboard = "tcc2_dashboard.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.12,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "PL", "RUF", "NPY", "PD"]
+ignore = [
+    "PLR0913", "PLR0917",  # funções de gráfico têm muitos parâmetros por design
+    "E501",  # o formatador cuida do código; textos longos em português são aceitos
+    "PLR2004",  # limiares estatísticos (0,05; 0,4) são explícitos no código
+    "RUF001", "RUF002", "RUF003",  # texto em português com ², χ², ≥ etc.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "PLR0915"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
