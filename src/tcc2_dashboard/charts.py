@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import dendrogram
 
+from tcc2_dashboard import catalogo, style
 from tcc2_dashboard.config import (
     CLASSIFICACAO_COR,
     RECESSOES_NBER,
@@ -19,37 +20,42 @@ from tcc2_dashboard.config import (
 )
 
 _FONT = "Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-_EIXO = {
-    "gridcolor": "#EEF1F6",
-    "zerolinecolor": "#CBD5E1",
-    "linecolor": "#CBD5E1",
-    "tickcolor": "#CBD5E1",
-    "ticks": "outside",
-    "automargin": True,
-    "title": {"font": {"size": 12, "color": "#64748B"}},
-}
-TEMPLATE = go.layout.Template(
-    layout={
-        "font": {"family": _FONT, "size": 12.5, "color": "#334155"},
-        "paper_bgcolor": "rgba(0,0,0,0)",
-        "plot_bgcolor": "rgba(0,0,0,0)",
-        "colorway": TAB20,
-        "xaxis": _EIXO,
-        "yaxis": _EIXO,
-        "hoverlabel": {
-            "bgcolor": "white",
-            "bordercolor": "#E2E8F0",
-            "font": {"family": _FONT, "size": 12.5, "color": "#0F172A"},
-        },
-        "legend": {"bgcolor": "rgba(0,0,0,0)", "font": {"size": 12}},
-        "title": {"font": {"size": 15, "color": "#0F172A"}},
+
+
+def template() -> go.layout.Template:
+    """Template Plotly que segue o tema claro/escuro ativo."""
+    t = style.tokens()
+    eixo = {
+        "gridcolor": t["grid"],
+        "zerolinecolor": t["line"],
+        "linecolor": t["line"],
+        "tickcolor": t["line"],
+        "ticks": "outside",
+        "automargin": True,
+        "title": {"font": {"size": 12, "color": t["muted"]}},
     }
-)
-_LAYOUT = {"margin": {"l": 14, "r": 14, "t": 28, "b": 14}, "template": TEMPLATE}
+    return go.layout.Template(
+        layout={
+            "font": {"family": _FONT, "size": 12.5, "color": t["ink"]},
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
+            "colorway": TAB20,
+            "xaxis": eixo,
+            "yaxis": eixo,
+            "hoverlabel": {
+                "bgcolor": t["card"],
+                "bordercolor": t["line"],
+                "font": {"family": _FONT, "size": 12.5, "color": t["ink"]},
+            },
+            "legend": {"bgcolor": "rgba(0,0,0,0)", "font": {"size": 12}},
+            "title": {"font": {"size": 15, "color": t["ink"]}},
+        }
+    )
 
 
 def _base(fig: go.Figure, altura: int = 460, **kw) -> go.Figure:
-    fig.update_layout(height=altura, **{**_LAYOUT, **kw})
+    layout = {"margin": {"l": 14, "r": 14, "t": 28, "b": 14}, "template": template()}
+    fig.update_layout(height=altura, **{**layout, **kw})
     return fig
 
 
@@ -76,11 +82,11 @@ def tamanhos(rot: pd.DataFrame, selecionado: int | None = None) -> go.Figure:
             marker_color=CLASSIFICACAO_COR[classe],
             marker_line_width=[3 if c == selecionado else 0 for c in g["cluster"]],
             marker_line_color="black",
-            customdata=np.stack([g["rotulo_curto"], g["r_squared"]], axis=-1),
-            hovertemplate="<b>Cluster %{x}</b> — %{customdata[0]}<br>"
-            "%{y} séries<br>R² = %{customdata[1]:.3f}<extra></extra>",
+            customdata=np.stack([g["rotulo_curto"], g["r_squared"] * 100], axis=-1),
+            hovertemplate="<b>Família %{x}</b> — %{customdata[0]}<br>"
+            "%{y} séries<br>explicada em %{customdata[1]:.0f}%<extra></extra>",
         )
-    fig.update_xaxes(title="Cluster", dtick=1)
+    fig.update_xaxes(title="Família (cluster)", dtick=1)
     fig.update_yaxes(title="Nº de séries")
     fig.update_layout(clickmode="event+select")
     return _base(fig, 400, barmode="stack", legend={"orientation": "h", "y": 1.12, "x": 0})
@@ -110,17 +116,22 @@ def r2_por_cluster(rot: pd.DataFrame, corte: float, selecionado: int | None = No
 
 def treemap(clusters: pd.DataFrame, rot: pd.DataFrame) -> go.Figure:
     d = clusters.merge(rot[["cluster", "rotulo_curto", "r_squared"]], on="cluster")
-    d["cluster_nome"] = "Cluster " + d["cluster"].astype(str) + " — " + d["rotulo_curto"].str[:38]
+    d["Família"] = "Família " + d["cluster"].astype(str) + " · " + d["rotulo_curto"].str[:36]
+    d["descricao"] = [catalogo.nome(x) for x in d["serie"]]
+    d["Explicada"] = d["r_squared"] * 100
     fig = px.treemap(
         d,
-        path=["cluster_nome", "serie"],
-        color="r_squared",
-        color_continuous_scale="Blues",
-        range_color=(0, 1),
-        labels={"r_squared": "R²"},
+        path=["Família", "serie"],
+        color="Explicada",
+        color_continuous_scale=[[0, "#E0E7FF"], [1, "#4F46E5"]],
+        range_color=(0, 100),
+        custom_data=["descricao"],
     )
-    fig.update_traces(root_color="rgba(0,0,0,0)")
-    return _base(fig, 520, coloraxis_colorbar={"title": "R²"})
+    fig.update_traces(
+        root_color="rgba(0,0,0,0)",
+        hovertemplate="<b>%{label}</b><br>%{customdata[0]}<extra></extra>",
+    )
+    return _base(fig, 520, coloraxis_colorbar={"title": "Explicada (%)", "thickness": 12})
 
 
 # ----------------------------------------------------------------------- mapa PCA
@@ -141,7 +152,12 @@ def pca_dispersao(
     d["opaco"] = d["cluster"].isin(destacar) if destacar else True
     if buscar:
         d["opaco"] = d["opaco"] | d.index.isin(buscar)
-    hover = {"serie": True, "cluster_nome": True, "tcode": True, "corr_centroide": ":.2f"}
+    hover = {
+        "descricao": True,
+        "cluster_nome": True,
+        "categoria": True,
+        "corr_centroide": ":.2f",
+    }
     kwargs = {"x": eixos[0], "y": eixos[1], "hover_name": "serie", "hover_data": hover}
     if cor_por == "cluster":
         d["cor"] = d["cluster"].astype(str)
@@ -150,9 +166,13 @@ def pca_dispersao(
             "color_discrete_map": {str(c): cor_cluster(c) for c in d["cluster"].unique()},
             "category_orders": {"cor": [str(c) for c in sorted(d["cluster"].unique())]},
         }
-    elif cor_por == "tcode":
-        d["cor"] = d["tcode"].astype(str)
-        kwargs |= {"color": "cor"}
+    elif cor_por == "categoria":
+        d["cor"] = d["categoria"]
+        kwargs |= {
+            "color": "cor",
+            "color_discrete_map": catalogo.CATEGORIA_COR,
+            "category_orders": {"cor": catalogo.CATEGORIAS},
+        }
     else:
         kwargs |= {"color": "corr_centroide", "color_continuous_scale": "RdYlBu_r"}
     if len(eixos) == 3:
@@ -208,6 +228,7 @@ def centroides(
     suavizar: int,
     recessoes: bool,
     painel_proprio: bool,
+    zoom: bool = False,
 ) -> go.Figure:
     cids = list(cids)
     d = cen.loc[janela[0] : janela[1], cids]
@@ -220,7 +241,7 @@ def centroides(
             rows=linhas,
             cols=cols,
             shared_xaxes=True,
-            subplot_titles=[f"Cluster {c}" for c in cids],
+            subplot_titles=[f"Família {c}" for c in cids],
             vertical_spacing=0.08,
         )
         for i, c in enumerate(cids):
@@ -242,14 +263,18 @@ def centroides(
         fig.add_scatter(
             x=d.index,
             y=d[c],
-            name=f"{c} — {rotulos[c][:34]}",
+            name=f"{c} · {rotulos[c][:34]}",
             line_color=cor_cluster(c),
-            hovertemplate="%{x|%b %Y}: %{y:.2f}<extra>" + f"cluster {c}" + "</extra>",
+            hovertemplate="%{x|%b %Y}: %{y:.2f}<extra>" + f"família {c}" + "</extra>",
         )
     if recessoes:
         _recessoes(fig, d.index[0], d.index[-1])
     fig.add_hline(y=0, line_color="grey", line_width=0.6)
-    fig.update_yaxes(title="Centroide (desvios-padrão)")
+    fig.update_yaxes(title="Perfil médio (desvios-padrão)")
+    if zoom:  # ignora picos extremos (ex.: pandemia de 2020) para enxergar o resto da história
+        lo, hi = np.nanquantile(d.to_numpy(), [0.005, 0.995])
+        pad = 0.25 * (hi - lo)
+        fig.update_yaxes(range=[lo - pad, hi + pad])
     return _base(fig, 520, hovermode="x unified", legend={"orientation": "h", "y": -0.18})
 
 
@@ -267,7 +292,7 @@ def membros(
         fig.add_scatter(
             x=d.index,
             y=d[s],
-            name=s,
+            name=catalogo.rotulo(s),
             line={"width": 1},
             opacity=0.55,
             hovertemplate=f"<b>{s}</b> %{{x|%b %Y}}: %{{y:.2f}}<extra></extra>",
@@ -275,7 +300,7 @@ def membros(
     fig.add_scatter(
         x=d.index,
         y=centro.loc[janela[0] : janela[1]],
-        name=f"centroide {cid}",
+        name=f"Perfil médio da família {cid}",
         line={"color": "black", "width": 3},
     )
     if recessoes:
@@ -289,6 +314,16 @@ def membros(
 
 def heatmap_correlacao(corr: pd.DataFrame, cluster_de: dict[str, int]) -> go.Figure:
     rot = [f"{s} ({cluster_de[s]})" for s in corr.index]
+    desc = [catalogo.nome(s) for s in corr.index]
+    texto = np.array(
+        [
+            [
+                f"<b>{a}</b>: {da}<br><b>{b}</b>: {db}"
+                for b, db in zip(corr.index, desc, strict=True)
+            ]
+            for a, da in zip(corr.index, desc, strict=True)
+        ]
+    )
     fig = go.Figure(
         go.Heatmap(
             z=corr.to_numpy(),
@@ -296,9 +331,10 @@ def heatmap_correlacao(corr: pd.DataFrame, cluster_de: dict[str, int]) -> go.Fig
             y=rot,
             zmin=-1,
             zmax=1,
-            colorscale="RdBu_r",
-            hovertemplate="%{y}<br>%{x}<br>r = %{z:.2f}<extra></extra>",
-            colorbar={"title": "r"},
+            colorscale="RdBu",
+            text=texto,
+            hovertemplate="%{text}<br>correlação = %{z:.2f}<extra></extra>",
+            colorbar={"title": "correlação"},
         )
     )
     fig.update_yaxes(autorange="reversed", showticklabels=len(rot) <= 40)
@@ -313,12 +349,17 @@ def par_series(df: pd.DataFrame, a: str, b: str, janela_roll: int) -> go.Figure:
         shared_xaxes=True,
         row_heights=[0.6, 0.4],
         vertical_spacing=0.06,
-        subplot_titles=("Séries padronizadas", f"Correlação móvel ({janela_roll} meses)"),
+        subplot_titles=(
+            "As duas séries na mesma escala",
+            f"Quanto andam juntas (janela de {janela_roll} meses)",
+        ),
     )
-    fig.add_scatter(x=df.index, y=df[a], name=a, row=1, col=1)
-    fig.add_scatter(x=df.index, y=df[b], name=b, row=1, col=1)
+    fig.add_scatter(x=df.index, y=df[a], name=catalogo.rotulo(a), row=1, col=1)
+    fig.add_scatter(x=df.index, y=df[b], name=catalogo.rotulo(b), row=1, col=1)
     rolling = df[a].rolling(janela_roll).corr(df[b])
-    fig.add_scatter(x=df.index, y=rolling, name="r móvel", line_color="#d62728", row=2, col=1)
+    fig.add_scatter(
+        x=df.index, y=rolling, name="correlação móvel", line_color="#E11D48", row=2, col=1
+    )
     fig.add_hline(y=0, line_color="grey", line_width=0.6, row=2, col=1)
     fig.update_yaxes(range=[-1, 1], row=2, col=1)
     return _base(fig, 520, hovermode="x unified")
@@ -374,12 +415,16 @@ def rede(
             "opacity": [1.0 if (not destacar or cluster_de[s] in destacar) else 0.15 for s in nos],
         },
         customdata=np.stack(
-            [[nomes_cluster[cluster_de[s]] for s in nos], [int(grau.get(s, 0)) for s in nos]],
+            [
+                nos,
+                [catalogo.nome(s) for s in nos],
+                [nomes_cluster[cluster_de[s]] for s in nos],
+                [int(grau.get(s, 0)) for s in nos],
+            ],
             axis=-1,
         ),
-        hovertemplate="<b>%{text}</b><br>%{customdata[0]}<br>grau: %{customdata[1]}<extra></extra>"
-        if rotular
-        else "%{customdata[0]}<br>grau: %{customdata[1]}<extra></extra>",
+        hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<br>"
+        "Família: %{customdata[2]}<br>Ligações fortes: %{customdata[3]}<extra></extra>",
         name="séries",
         showlegend=False,
     )
@@ -567,6 +612,31 @@ def dendrograma(
     )
     fig.update_yaxes(title="Distância de Ward")
     return _base(fig, 560)
+
+
+def heatmap_familias(corr: pd.DataFrame, rotulos: dict[int, str]) -> go.Figure:
+    """Correlação entre perfis de famílias (azul = andam juntas, vermelho = opostas)."""
+    nomes = [f"{c} · {rotulos[int(c)][:26]}" for c in corr.index]
+    z = corr.to_numpy()
+    fig = go.Figure(
+        go.Heatmap(
+            z=z,
+            x=nomes,
+            y=nomes,
+            zmin=-1,
+            zmax=1,
+            colorscale="RdBu",
+            xgap=2,
+            ygap=2,
+            text=np.round(z, 2),
+            texttemplate="%{text}" if len(nomes) <= 8 else None,
+            hovertemplate="%{y}<br>%{x}<br>semelhança = %{z:.2f}<extra></extra>",
+            colorbar={"title": "semelhança", "thickness": 12},
+        )
+    )
+    fig.update_yaxes(autorange="reversed", showticklabels=len(nomes) <= 12)
+    fig.update_xaxes(showticklabels=len(nomes) <= 12)
+    return _base(fig, 420 if len(nomes) <= 8 else 560)
 
 
 def varredura_k(v: pd.DataFrame, k_atual: int) -> go.Figure:

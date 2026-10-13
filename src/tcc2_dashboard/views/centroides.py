@@ -1,23 +1,23 @@
-"""Página 3 — centroides no tempo e séries-membro, com janela de datas e recessões NBER."""
+"""Comparar famílias: perfis médios no tempo lado a lado, com recessões e animação."""
 
 from __future__ import annotations
 
 import pandas as pd
 import streamlit as st
 
-from tcc2_dashboard import charts, data, ui
+from tcc2_dashboard import charts, charts_story, data, ui
 from tcc2_dashboard.config import CLUSTERS_ACHADO, K
 
 ATALHOS = {
-    "Achados genuínos": lambda rot: CLUSTERS_ACHADO,
-    "Clusters fortes": lambda rot: rot.loc[rot["forte"], "cluster"].tolist(),
-    "Todos": lambda rot: list(range(K)),
+    "Os quatro achados": lambda rot: CLUSTERS_ACHADO,
+    "Famílias fortes": lambda rot: rot.loc[rot["forte"], "cluster"].tolist(),
+    "Todas": lambda rot: list(range(K)),
     "Limpar": lambda rot: [],
 }
 
 
 def _aplicar_atalho() -> None:
-    # só roda quando o usuário clica na pílula; edições manuais do multiselect não são sobrescritas
+    # só roda quando a pessoa clica na pílula: edições manuais do multiselect não são sobrescritas
     escolha = st.session_state.get("cen_atalho")
     if escolha:
         st.session_state["cen_sel"] = ATALHOS[escolha](data.rotulados())
@@ -25,80 +25,61 @@ def _aplicar_atalho() -> None:
 
 def render() -> None:
     ui.cabecalho(
-        "Centroides no tempo",
-        "O centroide de um cluster é a média padronizada de suas séries-membro mês a mês.",
+        "Comparar famílias",
+        "Coloque várias famílias no mesmo gráfico e veja quais reagem às mesmas crises.",
+        kicker="Aprofunde",
     )
     cen = data.centroides()
     nomes = data.rotulo_curto()
     idx = cen.index
 
-    with st.sidebar:
-        st.header("Centroides")
-        st.session_state.setdefault("cen_sel", [ui.foco()])
-        st.pills(
-            "Atalho",
-            list(ATALHOS),
-            selection_mode="single",
-            key="cen_atalho",
-            on_change=_aplicar_atalho,
-        )
-        sel = st.multiselect(
-            "Clusters", list(range(K)), key="cen_sel", format_func=data.nome_cluster
-        )
-        janela = st.slider(
-            "Janela de datas",
-            idx[0].to_pydatetime(),
-            idx[-1].to_pydatetime(),
-            (idx[0].to_pydatetime(), idx[-1].to_pydatetime()),
-            format="MM/YYYY",
-        )
-        suavizar = st.slider("Média móvel (meses)", 1, 24, 1)
-        recessoes = st.toggle("Sombrear recessões (NBER)", value=True)
-        paineis = st.toggle("Um painel por cluster", value=False)
+    st.session_state.setdefault("cen_sel", [ui.foco()])
+    st.pills(
+        "Atalhos",
+        list(ATALHOS),
+        selection_mode="single",
+        key="cen_atalho",
+        on_change=_aplicar_atalho,
+    )
+    sel = st.multiselect("Famílias", list(range(K)), key="cen_sel", format_func=data.nome_cluster)
+
+    c1, c2, c3, c4, c5 = st.columns([3, 2, 1, 2, 1], vertical_alignment="bottom")
+    janela = c1.slider(
+        "Período",
+        idx[0].to_pydatetime(),
+        idx[-1].to_pydatetime(),
+        (idx[0].to_pydatetime(), idx[-1].to_pydatetime()),
+        format="MM/YYYY",
+    )
+    suavizar = c2.slider(
+        "Suavizar (meses)", 1, 24, 1, help="Média móvel: deixa a linha menos nervosa."
+    )
+    recessoes = c3.toggle("Recessões", value=True, help="Faixas cinza = recessões dos EUA (NBER).")
+    zoom = c5.toggle(
+        "Ampliar",
+        value=True,
+        help="Ignora picos extremos (como a pandemia de 2020) para dar zoom no resto.",
+    )
+    paineis = c4.toggle("Um gráfico por família", value=False)
 
     if not sel:
-        st.info("Escolha ao menos um cluster na barra lateral.")
+        st.info("Escolha ao menos uma família acima.")
         return
 
     j = (pd.Timestamp(janela[0]), pd.Timestamp(janela[1]))
-    ui.plot(charts.centroides(cen, sel, nomes, j, suavizar, recessoes, paineis), width="stretch")
+    aba1, aba2 = st.tabs(["Gráfico", "Animação ano a ano"])
+    with aba1:
+        ui.plot(
+            charts.centroides(cen, sel, nomes, j, suavizar, recessoes, paineis, zoom),
+            key="cen_main",
+        )
+    with aba2:
+        st.caption("Aperte ▶ Reproduzir para ver a linha se desenhar de 1965 até hoje.")
+        ui.plot(charts_story.centroide_animado(cen, sel, nomes, recessoes), key="cen_anim")
 
     d = cen.loc[j[0] : j[1], sel]
-    resumo = d.agg(["mean", "std", "min", "max"]).T.rename(
-        columns={"mean": "média", "std": "desvio-padrão", "min": "mínimo", "max": "máximo"}
-    )
-    resumo.index = [data.nome_cluster(c) for c in resumo.index]
-    a, b = st.columns([3, 2])
-    with a:
-        st.markdown("**Estatística descritiva na janela escolhida**")
-        st.dataframe(resumo.round(3), width="stretch")
-    with b:
-        if len(sel) > 1:
-            st.markdown("**Correlação entre centroides**")
-            st.dataframe(
-                d.corr().round(2).style.background_gradient(cmap="RdBu_r", vmin=-1, vmax=1),
-                width="stretch",
-            )
-    ui.csv_download(d, "centroides_janela.csv", "Baixar centroides da janela", key="dl_cen")
-
-    st.divider()
-    st.subheader("Séries-membro de um cluster")
-    foco = ui.seletor_foco(key="cen")
-    membros = data.clusters().query("cluster == @foco")["serie"].tolist()
-    escolhidas = st.multiselect("Séries exibidas", membros, default=membros[:8], key=f"mem_{foco}")
-    if escolhidas:
-        ui.plot(
-            charts.membros(data.padronizado(), escolhidas, cen[foco], foco, j, recessoes),
-            width="stretch",
-        )
-    meta = data.series_meta().query("cluster == @foco")[["serie", "tcode", "corr_centroide"]]
-    st.dataframe(
-        meta.sort_values("corr_centroide", ascending=False),
-        hide_index=True,
-        width="stretch",
-        column_config={
-            "corr_centroide": st.column_config.ProgressColumn(
-                "Correlação com o centroide", min_value=-1, max_value=1, format="%.2f"
-            )
-        },
-    )
+    if len(sel) > 1:
+        st.markdown("#### Quais famílias andam juntas?")
+        st.caption("Azul escuro = andam juntas; vermelho = andam em sentidos opostos.")
+        ui.plot(charts.heatmap_familias(d.corr(), nomes), key="corr_fam")
+    ui.csv_download(d, "perfis_das_familias.csv", "Baixar os dados do gráfico", key="dl_cen")

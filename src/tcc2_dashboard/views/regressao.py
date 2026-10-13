@@ -5,14 +5,16 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from tcc2_dashboard import analysis, charts, data, ui
-from tcc2_dashboard.config import ALPHA, HAC_MAXLAGS, REG_VARS_ROBUSTEZ
+from tcc2_dashboard import analysis, catalogo, charts, data, ui
+from tcc2_dashboard.config import ALPHA, HAC_MAXLAGS, REG_VARS_PRINCIPAL
 
 
 def render() -> None:
     ui.cabecalho(
-        "Regressão por cluster",
-        "Centroide de cada cluster ~ variáveis de referência, erro-padrão HAC (Newey-West).",
+        "Regressão (análise estatística)",
+        "Versão detalhada do que a página Variáveis de referência mostra de forma visual: para cada "
+        "família, quais indicadores a explicam e com que confiança.",
+        kicker="Detalhes técnicos",
     )
     rot = data.rotulados()
 
@@ -96,16 +98,21 @@ def render() -> None:
 
 def _regressao_ao_vivo() -> None:
     st.markdown(
-        "Refaça a regressão com as **5 variáveis de referência da janela cheia** (a 6ª, câmbio, "
-        "não está nos dados exportados). Com todas as 5 e a janela inteira, o resultado bate com "
-        "a tabela de robustez."
+        "Refaça a regressão escolhendo os indicadores e o período. Com os 6 indicadores e o período "
+        "a partir de 02/1973, o resultado bate com a análise principal; com os 5 primeiros e o "
+        "período inteiro, bate com a checagem de robustez."
     )
     reg_x = data.regressores()
     cen = data.centroides()
     c1, c2 = st.columns([1, 2])
     with c1:
         foco = ui.seletor_foco(key="reg_vivo")
-        vars_ = st.multiselect("Regressores", REG_VARS_ROBUSTEZ, default=REG_VARS_ROBUSTEZ)
+        vars_ = st.multiselect(
+            "Indicadores",
+            REG_VARS_PRINCIPAL,
+            default=REG_VARS_PRINCIPAL,
+            format_func=lambda v: catalogo.REFERENCIAS[v]["nome"],
+        )
         lags = st.slider("Defasagens HAC (maxlags)", 1, 24, HAC_MAXLAGS)
         hac = st.toggle("Erro-padrão HAC", value=True, help="Desligue para ver o OLS clássico.")
     with c2:
@@ -122,7 +129,7 @@ def _regressao_ao_vivo() -> None:
         st.warning("Selecione ao menos um regressor.")
         return
     i0, i1 = pd.Timestamp(janela[0]), pd.Timestamp(janela[1])
-    x = reg_x.loc[i0:i1, vars_]
+    x = reg_x.loc[i0:i1, vars_].dropna()
     y = cen.loc[x.index, foco]
     if len(x) < len(vars_) + 20:
         st.warning("Janela curta demais para estimar.")

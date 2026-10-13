@@ -53,7 +53,9 @@ FIGURAS = {
 
 def render() -> None:
     ui.cabecalho(
-        "Metodologia e limitações", "Pipeline de Santos et al. (2021) aplicado ao FRED-MD."
+        "Metodologia e limitações",
+        "O método passo a passo e o que ainda precisa ser resolvido, com transparência.",
+        kicker="Detalhes técnicos",
     )
 
     st.subheader("Pipeline")

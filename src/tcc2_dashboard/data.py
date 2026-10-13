@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from tcc2_dashboard import catalogo
 from tcc2_dashboard.config import (
     CLASSIFICACAO_ROTULO,
     CLUSTERS_ACHADO,
@@ -60,7 +61,7 @@ def rotulo_curto() -> dict[int, str]:
 
 
 def nome_cluster(cid: int) -> str:
-    return f"{cid} — {rotulo_curto()[int(cid)]}"
+    return f"{cid} · {rotulo_curto()[int(cid)]}"
 
 
 @st.cache_data(show_spinner=False)
@@ -90,10 +91,19 @@ def regressao(especificacao: str = "principal") -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def regressores() -> pd.DataFrame:
-    """As 5 variáveis de referência disponíveis para a janela cheia (1965-2026)."""
+    """As 6 variáveis de referência (1965-2026). O câmbio só existe a partir de 02/1973.
+
+    As 5 primeiras vêm do notebook; o câmbio é refeito do CSV bruto (Δlog + z-score, ddof=1) e
+    reproduz exatamente o coeficiente salvo da regressão principal (ver tests/test_data.py).
+    """
     df = _csv("regressao.csv", index_col=0)
     df.index = pd.to_datetime(df.index)
     df.index.name = "data"
+    raw = pd.read_csv(DATA_DIR / "fred_md_raw.csv", skiprows=[1], index_col=0)
+    raw.index = pd.to_datetime(raw.index, format="%m/%d/%Y", errors="coerce")
+    cambio = np.log(raw.loc[raw.index.notna(), "TWEXAFEGSMTHx"].astype(float)).diff()
+    cambio = cambio.reindex(df.index)
+    df["TWEXAFEGSMTHx"] = (cambio - cambio.mean()) / cambio.std(ddof=1)
     return df
 
 
@@ -124,18 +134,20 @@ def contingencia() -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def series_meta() -> pd.DataFrame:
-    """Metadados por série: cluster, tcode do FRED-MD e estatísticas básicas."""
+    """Metadados por série: cluster, descrição em português, categoria oficial e tcode."""
     raw = pd.read_csv(DATA_DIR / "fred_md_raw.csv", nrows=1, index_col=0)
     tcodes = raw.iloc[0].astype(int)
     c = clusters().set_index("serie")
     df = padronizado()
+    cen = centroides()
     meta = pd.DataFrame({"cluster": c["cluster"].astype(int)})
     meta["tcode"] = tcodes.reindex(meta.index).astype("Int64")
-    corr_cen = {
-        s: float(np.corrcoef(df[s], centroides()[meta.loc[s, "cluster"]])[0, 1]) for s in meta.index
-    }
-    meta["corr_centroide"] = pd.Series(corr_cen)
+    meta["corr_centroide"] = pd.Series(
+        {s: float(np.corrcoef(df[s], cen[meta.loc[s, "cluster"]])[0, 1]) for s in meta.index}
+    )
     meta["rotulo"] = meta["cluster"].map(rotulo_curto())
+    meta["descricao"] = [catalogo.nome(s) for s in meta.index]
+    meta["categoria"] = [catalogo.categoria(s) for s in meta.index]
     return meta.reset_index(names="serie")
 
 

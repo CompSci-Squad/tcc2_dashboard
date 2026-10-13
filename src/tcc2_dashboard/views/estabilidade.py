@@ -30,7 +30,9 @@ def _varredura(k_min: int, k_max: int) -> pd.DataFrame:
 def render() -> None:
     ui.cabecalho(
         "Estabilidade e robustez",
-        "Os 4 achados genuínos (clusters 3, 4, 14, 18) sobrevivem à reamostragem e a outro método?",
+        "Os quatro achados se repetem quando refazemos a análise com meses embaralhados ou com "
+        "outro método de agrupamento?",
+        kicker="Detalhes técnicos",
     )
     aba1, aba2, aba3 = st.tabs(["Bootstrap em blocos", "Ward × K-Means", "E se k fosse outro?"])
     with aba1:

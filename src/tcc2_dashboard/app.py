@@ -4,18 +4,44 @@ from __future__ import annotations
 
 import streamlit as st
 
-from tcc2_dashboard import style
+from tcc2_dashboard import style, ui
 from tcc2_dashboard.config import ASSETS_DIR
 from tcc2_dashboard.views import (
+    achados,
     centroides,
     estabilidade,
+    explorar,
     mapa,
     metodologia,
+    projeto,
     rede,
     regressao,
     series,
+    variaveis,
     visao_geral,
 )
+
+# (chave, módulo, título, ícone, url) agrupados como aparecem no menu
+MENU = {
+    "Comece por aqui": [
+        ("visao", visao_geral, "Visão geral", ":material/dashboard:", "visao-geral"),
+        ("achados", achados, "Os quatro achados", ":material/emoji_objects:", "achados"),
+        ("explorar", explorar, "Explorar famílias", ":material/travel_explore:", "explorar"),
+        ("variaveis", variaveis, "Variáveis de referência", ":material/thermostat:", "variaveis"),
+        ("projeto", projeto, "O projeto", ":material/menu_book:", "projeto"),
+    ],
+    "Aprofunde": [
+        ("mapa", mapa, "Mapa das séries", ":material/scatter_plot:", "mapa"),
+        ("comparar", centroides, "Comparar famílias", ":material/show_chart:", "comparar"),
+        ("series", series, "Explorador de séries", ":material/compare_arrows:", "series"),
+        ("rede", rede, "Rede de semelhanças", ":material/hub:", "rede"),
+    ],
+    "Detalhes técnicos": [
+        ("regressao", regressao, "Regressão", ":material/functions:", "regressao"),
+        ("estabilidade", estabilidade, "Estabilidade", ":material/verified:", "estabilidade"),
+        ("metodologia", metodologia, "Metodologia", ":material/science:", "metodologia"),
+    ],
+}
 
 
 def main() -> None:
@@ -28,62 +54,22 @@ def main() -> None:
         },
     )
     style.aplicar()
-    st.logo(str(ASSETS_DIR / "logo.svg"), icon_image=str(ASSETS_DIR / "icon.svg"), size="large")
-    paginas = {
-        "Resultados": [
-            st.Page(
-                visao_geral.render,
-                title="Visão geral",
-                icon=":material/dashboard:",
-                url_path="visao-geral",
-                default=True,
-            ),
-            st.Page(
-                mapa.render,
-                title="Mapa das séries",
-                icon=":material/scatter_plot:",
-                url_path="mapa",
-            ),
-            st.Page(
-                centroides.render,
-                title="Centroides no tempo",
-                icon=":material/show_chart:",
-                url_path="centroides",
-            ),
-            st.Page(
-                series.render,
-                title="Explorador de séries",
-                icon=":material/compare_arrows:",
-                url_path="series",
-            ),
-            st.Page(
-                rede.render, title="Rede de correlação", icon=":material/hub:", url_path="rede"
-            ),
-        ],
-        "Inferência": [
-            st.Page(
-                regressao.render,
-                title="Regressão",
-                icon=":material/functions:",
-                url_path="regressao",
-            ),
-            st.Page(
-                estabilidade.render,
-                title="Estabilidade",
-                icon=":material/verified:",
-                url_path="estabilidade",
-            ),
-        ],
-        "Sobre": [
-            st.Page(
-                metodologia.render,
-                title="Metodologia",
-                icon=":material/menu_book:",
-                url_path="metodologia",
-            ),
-        ],
-    }
+    logo = "logo-dark.svg" if style.tema() == "dark" else "logo.svg"
+    st.logo(str(ASSETS_DIR / logo), icon_image=str(ASSETS_DIR / "icon.svg"), size="large")
+
+    paginas: dict[str, list] = {}
+    for grupo, itens in MENU.items():
+        paginas[grupo] = []
+        for chave, modulo, titulo, icone, url in itens:
+            pagina = st.Page(
+                modulo.render, title=titulo, icon=icone, url_path=url, default=chave == "visao"
+            )
+            ui.PAGINAS[chave] = pagina
+            paginas[grupo].append(pagina)
+
     st.navigation(paginas).run()
+    with st.sidebar:
+        st.caption("Tema claro ou escuro: menu ⋮ no canto superior direito → Settings → Theme.")
 
 
 main()

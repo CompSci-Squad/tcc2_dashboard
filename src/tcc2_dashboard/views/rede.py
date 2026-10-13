@@ -1,13 +1,18 @@
-"""Página 4 — rede de correlação entre séries com limiar ajustável."""
+"""Rede de semelhanças: quais séries estão fortemente ligadas entre si."""
 
 from __future__ import annotations
 
 import streamlit as st
 
-from tcc2_dashboard import analysis, charts, data, ui
+from tcc2_dashboard import analysis, catalogo, charts, data, ui
 from tcc2_dashboard.config import LIMIAR_CORR_PADRAO, K
 
 LAYOUTS = ["Circular (por cluster)", "Agrupado por cluster", "Força (spring)"]
+NOMES_LAYOUT = {
+    LAYOUTS[0]: "Em círculo, por família",
+    LAYOUTS[1]: "Famílias em ilhas",
+    LAYOUTS[2]: "Por atração (fios puxam)",
+}
 
 
 @st.cache_data(show_spinner=False)
@@ -19,24 +24,29 @@ def _posicoes(layout: str, limiar: float):
 
 def render() -> None:
     ui.cabecalho(
-        "Rede de correlação",
-        "Nó = série (cor = cluster). Aresta = |r de Pearson| acima do limiar. "
-        "Mostra co-movimento contemporâneo, não causalidade.",
+        "Rede de semelhanças",
+        "Cada bolinha é uma série; cada fio liga duas séries que andam muito juntas. "
+        "A cor da bolinha é a sua família.",
+        kicker="Aprofunde",
     )
     corr = data.correlacao_series()
     cl_de = data.cluster_de()
     nomes = data.rotulo_curto()
 
-    with st.sidebar:
-        st.header("Rede")
-        limiar = st.slider("Limiar |r|", 0.30, 0.95, LIMIAR_CORR_PADRAO, 0.01)
-        pos_on = st.checkbox("Arestas positivas", True)
-        neg_on = st.checkbox("Arestas negativas", True)
-        layout = st.radio("Layout", LAYOUTS)
-        destacar = st.multiselect(
-            "Destacar clusters", list(range(K)), format_func=data.nome_cluster
-        )
-        rotular = st.toggle("Rótulos nos nós", value=False)
+    c1, c2, c3 = st.columns([3, 2, 2])
+    limiar = c1.slider(
+        "Quão parecidas devem ser para ganhar um fio?",
+        0.30,
+        0.95,
+        LIMIAR_CORR_PADRAO,
+        0.01,
+        help="Quanto maior, menos fios. O valor de referência do estudo é 0,50.",
+    )
+    layout = c2.radio("Disposição", LAYOUTS, format_func=NOMES_LAYOUT.get)
+    with c3:
+        pos_on = st.checkbox("Fios de séries que andam juntas (verdes)", True)
+        neg_on = st.checkbox("Fios de séries opostas (vermelhos)", True)
+    destacar = st.multiselect("Destacar famílias", list(range(K)), format_func=data.nome_cluster)
 
     arestas = analysis.arestas_correlacao(corr, limiar)
     if destacar:
@@ -45,33 +55,32 @@ def render() -> None:
     pos = _posicoes(layout, limiar)
 
     r = analysis.resumo_rede(arestas, cl_de, corr.shape[0])
-    c = st.columns(5)
-    c[0].metric("Arestas", f"{r['n_arestas']:,}".replace(",", "."))
-    c[1].metric("% positivas", f"{r['pct_positivas']:.0f} %")
-    c[2].metric("% dentro do cluster", f"{r['pct_dentro']:.0f} %")
-    c[3].metric("Densidade dentro", f"{r['densidade_dentro']:.2f}")
-    c[4].metric("Densidade entre", f"{r['densidade_entre']:.3f}")
+    m = st.columns(4)
+    m[0].metric("Fios", f"{r['n_arestas']:,}".replace(",", "."))
+    m[1].metric("Entre séries da mesma família", f"{r['pct_dentro']:.0f}%")
+    m[2].metric("Séries sem nenhum fio", r["isolados"])
+    m[3].metric("Fios que são de séries que andam juntas", f"{r['pct_positivas']:.0f}%")
 
     if arestas.empty:
-        st.warning("Nenhuma aresta acima do limiar com os filtros atuais.")
+        st.warning("Nenhum fio com esse critério. Diminua o limiar.")
     ui.plot(
-        charts.rede(pos, arestas, cl_de, nomes, pos_on, neg_on, destacar, rotular),
-        width="stretch",
+        charts.rede(pos, arestas, cl_de, nomes, pos_on, neg_on, destacar, False),
+        key="rede",
     )
     st.caption(
-        f"{r['isolados']} séries sem nenhuma aresta. Se a densidade dentro dos clusters for muito maior "
-        "que entre eles, o K-Means está capturando a estrutura de correlação. "
-        "Limiar de referência do roteiro: 0,5."
+        "Se a maioria dos fios liga séries da mesma família, o agrupamento está capturando "
+        "estrutura real. Passe o mouse em uma bolinha para ver o que a série mede. Mostra "
+        "semelhança, não causa e efeito."
     )
 
-    st.divider()
-    st.subheader("Séries mais conectadas")
+    st.markdown("#### Séries mais conectadas")
     grau = (
         arestas.melt(value_vars=["a", "b"])["value"]
         .value_counts()
-        .rename_axis("serie")
-        .reset_index(name="grau")
+        .rename_axis("Código")
+        .reset_index(name="Ligações")
     )
-    grau["cluster"] = grau["serie"].map(cl_de)
-    st.dataframe(grau.head(15), hide_index=True, width="stretch")
-    ui.csv_download(arestas, "arestas_rede.csv", "Baixar arestas", key="dl_rede")
+    grau.insert(1, "O que mede", [catalogo.nome(s) for s in grau["Código"]])
+    grau["Família"] = grau["Código"].map(cl_de)
+    st.dataframe(grau.head(12), hide_index=True, width="stretch")
+    ui.csv_download(arestas, "ligacoes.csv", "Baixar as ligações", key="dl_rede")

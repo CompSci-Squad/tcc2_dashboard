@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from tcc2_dashboard import data
+from tcc2_dashboard import data, style
 from tcc2_dashboard.config import CLUSTERS_ACHADO, K
 
 FOCO = "cluster_foco"
@@ -34,25 +34,6 @@ def seletor_foco(container=None, label: str = "Cluster em foco", key: str = "w")
     return int(
         c.selectbox(label, opcoes, key=wkey, format_func=data.nome_cluster, on_change=_on_change)
     )
-
-
-def clique_em_cluster(evento, chave_ultimo: str) -> None:
-    """Aplica um clique do Plotly (on_select) ao foco, ignorando eventos já processados."""
-    pontos = evento.get("selection", {}).get("points", []) if evento else []
-    if not pontos:
-        st.session_state.pop(chave_ultimo, None)
-        return
-    p = pontos[0]
-    bruto = p.get("x")
-    try:
-        cid = int(bruto)
-    except (TypeError, ValueError):
-        return
-    assinatura = (cid, p.get("curve_number"), p.get("point_index"))
-    if st.session_state.get(chave_ultimo) != assinatura:
-        st.session_state[chave_ultimo] = assinatura
-        definir_foco(cid)
-        st.rerun()
 
 
 def cabecalho(
@@ -102,3 +83,29 @@ def csv_download(
 
 def star(p: float) -> str:
     return "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else "ns"
+
+
+# ------------------------------------------------------------------ navegação / hero
+
+PAGINAS: dict[str, st.Page] = {}  # preenchido em app.py (st.page_link precisa de um st.Page)
+
+
+def link(chave: str, label: str, icon: str | None = None) -> None:
+    """Botão de navegação para outra página (ignorado fora do app completo, ex.: testes)."""
+    pagina = PAGINAS.get(chave)
+    if pagina is not None:
+        st.page_link(pagina, label=label, icon=icon, width="stretch")
+
+
+def hero(titulo: str, texto: str, estatisticas: list[tuple[int, str, str]], kicker: str) -> None:
+    """Cartão grande de abertura com números que contam até o valor final."""
+    blocos = "".join(
+        f'<div class="hero-stat"><div class="num" style="--n:{n}">'
+        f"{f'<small>{suf}</small>' if suf else ''}</div>"
+        f'<div class="lab">{style.esc(rot)}</div></div>'
+        for n, suf, rot in estatisticas
+    )
+    style.html(
+        f'<div class="hero"><div class="kicker">{style.esc(kicker)}</div><h1>{titulo}</h1>'
+        f'<p>{texto}</p><div class="hero-stats">{blocos}</div></div>'
+    )
