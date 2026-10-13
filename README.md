@@ -51,6 +51,6 @@ Stack: uv, ruff (lint + format), mypy, pytest, pre-commit, GitHub Actions, Docke
 ## Limites
 
 - O câmbio (6ª variável) é reconstruído do CSV bruto (Δlog + z-score) e reproduz exatamente o
-  coeficiente salvo da regressão principal (ver ).
-- O bootstrap ao vivo usa  (rápido); o resultado oficial é o do notebook (B = 500).
-- Os resultados herdam o bug conhecido de convergência do  (ver página Metodologia).
+  coeficiente salvo da regressão principal (ver `tests/test_data.py`).
+- O bootstrap ao vivo usa `n_init = 3` (rápido); o resultado oficial é o do notebook (B = 500).
+- Os resultados herdam o bug conhecido de convergência do `em_pca_impute` (ver página Metodologia).
