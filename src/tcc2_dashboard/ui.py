@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 import streamlit as st
 
-from tcc2_dashboard import data, style
+from tcc2_dashboard import data, explicacoes, style
 from tcc2_dashboard.config import CLUSTERS_ACHADO, K
 
 FOCO = "cluster_foco"
@@ -83,6 +85,27 @@ def csv_download(
 
 def star(p: float) -> str:
     return "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else "ns"
+
+
+# ------------------------------------------------------------------ guias de leitura
+
+
+def md(s: str) -> str:
+    """Escapa o texto e converte **negrito** em <b>."""
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", style.esc(s))
+
+
+def guia(chave: str, aberto: bool = False, titulo: str = "Como ler este gráfico") -> None:
+    """Bloco "o que você está vendo / como ler / cuidado" (textos em explicacoes.py)."""
+    g = explicacoes.GUIAS[chave]
+    itens = "".join(f"<li>{md(x)}</li>" for x in g["como_ler"])
+    corpo = (
+        f'<div class="guia"><div class="g"><span>O que você está vendo</span><p>{md(g["o_que"])}</p></div>'
+        f'<div class="g c"><span>Como ler</span><ul>{itens}</ul></div>'
+        f'<div class="g w"><span>Cuidado com a interpretação</span><p>{md(g["cuidado"])}</p></div></div>'
+    )
+    with st.expander(titulo, expanded=aberto, icon=":material/menu_book:"):
+        style.html(corpo)
 
 
 # ------------------------------------------------------------------ navegação / hero

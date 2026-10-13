@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from tcc2_dashboard import catalogo, charts, charts_story, data, style, ui
+from tcc2_dashboard import catalogo, charts, charts_story, data, style, textos, ui
 
 
 def render() -> None:
@@ -24,6 +24,26 @@ def render() -> None:
         ],
         kicker="TCC2 · CICD06 · Instituto Mauá de Tecnologia",
     )
+
+    st.markdown("#### Três ideias para ler este painel")
+    style.html(
+        """
+        <div class="cards-3">
+          <div class="card rise d1"><div class="kicker-s">Ideia 1</div>
+            <h4>Olhamos a variação, não o valor</h4>
+            <p>Em vez do nível do desemprego, usamos quanto ele mudou de um mês para o outro.
+            Assim dá para comparar indicadores de naturezas diferentes, como preços e empregos.</p></div>
+          <div class="card rise d2"><div class="kicker-s">Ideia 2</div>
+            <h4>Família não é categoria</h4>
+            <p>As 8 categorias oficiais são etiquetas de especialistas. As 19 famílias foram
+            formadas pelo comportamento dos dados e podem misturar categorias.</p></div>
+          <div class="card rise d3"><div class="kicker-s">Ideia 3</div>
+            <h4>Andar junto não é causar</h4>
+            <p>Mostramos que indicadores se movem juntos. Isso não prova que um provoca o outro.</p></div>
+        </div>
+        """
+    )
+    st.write("")
 
     esq, dir_ = st.columns([2, 3], gap="large")
     with esq:
@@ -50,6 +70,7 @@ def render() -> None:
             "As 8 categorias oficiais do FRED-MD. Escolha uma logo abaixo para ver as séries."
         )
         ui.plot(charts_story.categorias(meta, st.session_state.get("cat_pills")), key="cat_bars")
+        ui.guia("categorias")
 
     sel = st.pills(
         "Ver as séries de um tema",
@@ -105,7 +126,10 @@ def render() -> None:
 
     st.divider()
     st.subheader("As 19 famílias e suas séries")
+    n_mistas, n_total, _ = textos.mistura_categorias()
     st.caption(
-        "Cada bloco é uma família; o tamanho mostra quantas séries ela tem. Clique para ampliar."
+        f"{n_mistas} das {n_total} famílias reúnem séries de mais de uma categoria oficial: "
+        "os dados ligam indicadores que a classificação tradicional separa."
     )
-    ui.plot(charts.treemap(data.clusters(), rot))
+    ui.plot(charts.treemap(data.clusters(), rot), key="treemap")
+    ui.guia("treemap")

@@ -32,3 +32,23 @@ def test_cambio_reconstruido_reproduz_regressao_principal():
 
 def test_achados_tem_frase_de_leitura():
     assert set(catalogo.ACHADOS) == {3, 4, 14, 18}
+
+
+def test_guias_completos_e_usados():
+    import re  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    from tcc2_dashboard import explicacoes  # noqa: PLC0415
+
+    for chave, g in explicacoes.GUIAS.items():
+        assert g["o_que"] and g["como_ler"] and g["cuidado"], chave
+    usados = set()
+    for p in (Path(data.__file__).parent / "views").glob("*.py"):
+        usados |= set(re.findall(r"ui\.guia\(\s*\"(\w+)\"", p.read_text()))
+    assert usados <= set(explicacoes.GUIAS), usados - set(explicacoes.GUIAS)
+    assert set(explicacoes.GUIAS) <= usados, set(explicacoes.GUIAS) - usados
+
+
+def test_achados_tem_hipotese_e_cuidado():
+    for a in catalogo.ACHADOS.values():
+        assert a["hipotese"] and a["cuidado"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from tcc2_dashboard import data, ui
+from tcc2_dashboard import data, style, ui
 from tcc2_dashboard.config import DATA_DIR, FIG_DIR, TCODE_ROTULO
 
 ETAPAS = [
@@ -58,12 +58,24 @@ def render() -> None:
         kicker="Detalhes técnicos",
     )
 
+    style.html(
+        '<div class="callout"><b>Em uma frase:</b> agrupamos 118 indicadores pelo jeito como se '
+        "movem ao longo de 61 anos e, depois, perguntamos a quais indicadores conhecidos cada grupo "
+        "responde. O resultado é descritivo: mostra associações, não causas, e não faz previsões."
+        "</div>"
+    )
     st.subheader("Pipeline")
     for titulo, texto in ETAPAS:
         st.markdown(f"**{titulo}** — {texto}")
 
     st.divider()
-    st.subheader("Limitações conhecidas (reportar na banca)")
+    st.subheader("Limitações conhecidas")
+    st.caption(
+        "Em palavras simples: (1) parte da preparação dos dados tem uma falha de cálculo conhecida, "
+        "mantida de propósito para não mudar resultados já validados; (2) os erros do modelo têm "
+        "memória no tempo, o que exigiu uma correção estatística; (3) alguns grupos mudam de "
+        "composição quando refazemos a análise."
+    )
     st.warning(
         "**Imputação EM-PCA**: o critério de convergência tem um bug conhecido — `prev_norm` começa "
         "em infinito e a checagem dispara na 1ª iteração, então o EM roda uma única passada. A "

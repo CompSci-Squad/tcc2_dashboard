@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import streamlit as st
 
-from tcc2_dashboard import analysis, catalogo, charts, charts_story, data, ui
+from tcc2_dashboard import analysis, catalogo, charts, charts_story, data, style, textos, ui
 from tcc2_dashboard.config import K
 
 
@@ -43,10 +43,18 @@ def render() -> None:
             for c in catalogo.CATEGORIAS
         )
         st.markdown(chips, unsafe_allow_html=True)
+        n_mistas, n_total, topo = textos.mistura_categorias()
+        exemplo = ", ".join(f"família {c} ({n} categorias)" for c, n in topo)
+        style.html(
+            f'<div class="callout"><b>O que o mapa mostra:</b> {n_mistas} das {n_total} famílias '
+            f"juntam séries de mais de uma categoria oficial (as mais misturadas: {exemplo}). "
+            "Ou seja, o comportamento dos dados liga indicadores que a classificação tradicional "
+            "coloca em temas separados.</div>"
+        )
+        ui.guia("mapa_morph", aberto=True)
         st.caption(
-            "Na vista 1, a cor é a categoria oficial. Na vista 2, a posição vem do comportamento "
-            "das séries e a cor mostra a família. Passe o mouse em qualquer ponto para saber o que "
-            "a série mede."
+            f"Este mapa resume {pca.variancia[:2].sum():.0%} da informação (as duas primeiras "
+            "dimensões)."
         )
 
     with aba2:
@@ -76,10 +84,7 @@ def render() -> None:
         eixos = list(pca.coords.columns) if dim == "3D" else ["PC1", "PC2"]
         fig = charts.pca_dispersao(pca.coords, meta, eixos, cor_por, destacar, nomes, buscar)
         ui.plot(fig, key="pca_map")
-        st.caption(
-            "Arraste para girar (3D) ou dar zoom; clique em uma família na legenda para escondê-la "
-            "ou isolá-la."
-        )
+        ui.guia("mapa_pca")
 
     with st.expander("Detalhes técnicos: como o número de famílias foi escolhido"):
         st.markdown(

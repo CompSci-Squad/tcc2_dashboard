@@ -46,10 +46,12 @@ def render() -> None:
 def _bootstrap() -> None:
     boot = data.bootstrap_jaccard()
     st.markdown(
-        f"Block bootstrap (blocos de {BLOCK_SIZE} meses, mesmos para as 118 séries) preserva a "
-        "autocorrelação. A métrica é o **Jaccard** do melhor cluster reamostrado contra o original: "
-        "1 = idêntico, 0 = sem relação."
+        "Pergunta: **se os dados fossem um pouco diferentes, as mesmas famílias apareceriam?** "
+        f"Para testar, embaralhamos o calendário em blocos de {BLOCK_SIZE} meses (para manter a "
+        "persistência dos dados), refizemos o agrupamento 500 vezes e medimos, a cada vez, o "
+        "quanto cada família original reaparece (índice de Jaccard)."
     )
+    ui.guia("boot", aberto=True)
     ao_vivo = st.session_state.get("boot_vivo")
     extra = None
     if ao_vivo is not None:
@@ -121,14 +123,25 @@ def _ward_vs_kmeans() -> None:
     st.markdown("##### Onde caem os clusters do K-Means no Ward (k = 19, notebook)")
     wc = data.ward_comparacao()
     so_achado = st.toggle("Só os 4 achados genuínos", value=True)
+    for r in wc[wc["achado_genuino"]].itertuples():
+        st.markdown(
+            f"- **Família {r.cluster_kmeans}** ({r.n_series_kmeans} séries): no Ward, "
+            f"{r.membros_kmeans_no_ward} delas ficam no mesmo grupo "
+            + (
+                "(todas juntas)"
+                if r.todos_juntos_no_ward
+                else f"e as demais se espalham por {r.n_grupos_ward_que_contem_membros} grupos"
+            )
+            + f". Semelhança entre os dois grupos (Jaccard): {r.jaccard_ward:.2f}."
+        )
     st.dataframe(wc[wc["achado_genuino"]] if so_achado else wc, hide_index=True, width="stretch")
+    ui.guia("ward", titulo="Como ler esta comparação")
 
 
 def _what_if_k() -> None:
     st.markdown(
-        "Refaz o K-Means com outro **k** (mesmo `random_state = 42`) e compara com a partição "
-        "oficial de k = 19. **Isto é exploratório**: o k do TCC foi fixado a priori pelo critério "
-        "de 70 % de variância; aqui não se escolhe k olhando resultado."
+        "Pergunta: **e se tivéssemos escolhido outro número de famílias?** Refazemos o "
+        "agrupamento com o k que você escolher e comparamos com o oficial (k = 19)."
     )
     df = data.padronizado()
     k = st.slider("k", 2, 40, K, key="k_wi")
@@ -144,10 +157,7 @@ def _what_if_k() -> None:
         st.success("k = 19 reproduz exatamente a partição do notebook (ARI = 1).")
 
     ui.plot(charts.varredura_k(_varredura(5, 30), k), width="stretch")
-    st.caption(
-        "Varredura com n_init = 5 (rápida). A silhueta é baixa em geral: os clusters "
-        "macroeconômicos não são bolhas bem separadas."
-    )
+    ui.guia("what_if", aberto=True)
 
     foco = ui.foco()
     membros = np.where(ori == foco)[0]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from tcc2_dashboard import catalogo, style, ui
+from tcc2_dashboard import catalogo, explicacoes, style, ui
 
 PASSOS = [
     (
@@ -93,6 +93,12 @@ def render() -> None:
         ui.link("achados", "Ver os quatro achados", ":material/emoji_objects:")
     with c2:
         ui.link("explorar", "Explorar as famílias", ":material/travel_explore:")
+
+    st.divider()
+    st.subheader("Perguntas que costumam aparecer")
+    for pergunta, resposta in explicacoes.FAQ:
+        with st.expander(pergunta):
+            st.markdown(resposta)
 
     st.divider()
     st.subheader("O que o trabalho não diz")

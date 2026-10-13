@@ -10,6 +10,10 @@ from tcc2_dashboard.config import ALPHA, REG_VARS_PRINCIPAL
 ESCOLHAS = {v: catalogo.REFERENCIAS[v]["nome"] for v in REG_VARS_PRINCIPAL}
 
 
+def _nivel(forca: float) -> str:
+    return "forte" if forca >= 0.5 else "moderada" if forca >= 0.2 else "fraca"
+
+
 def render() -> None:
     ui.cabecalho(
         "Variáveis de referência",
@@ -41,20 +45,22 @@ def render() -> None:
 
     reg = data.regressao("principal")
     rot = data.rotulados()
+    n_resp = int((reg[f"pvalue_{var}"] < ALPHA).sum())
     st.markdown("#### Quem responde a este indicador?")
+    st.markdown(
+        f"**{n_resp} de {len(reg)} famílias** respondem de forma clara a "
+        f"**{ref['nome'].lower()}**. As demais ficam em cinza."
+    )
     style.html(
-        '<span class="pill" style="color:#4F46E5">■ mesmo sentido</span> '
-        '<span class="pill" style="color:#D97706">■ sentido oposto</span> '
-        '<span class="pill">■ sem resposta clara</span>'
+        '<span class="pill" style="color:#4F46E5">■ anda no mesmo sentido</span> '
+        '<span class="pill" style="color:#D97706">■ anda no sentido oposto</span> '
+        '<span class="pill">■ sem resposta clara (a relação não passou no teste estatístico)</span>'
     )
     ui.plot(
         charts_story.mapa_variavel(reg, REG_VARS_PRINCIPAL, var, ALPHA, rot),
         key=f"tiles_{var}",
     )
-    st.caption(
-        "Cada quadrado é uma família. Passe o mouse para ler o resultado em palavras, ou use o "
-        "botão para ver os seis indicadores em sequência."
-    )
+    ui.guia("variaveis_mapa", aberto=True, titulo="Como ler este mapa")
 
     # ranking em linguagem simples
     d = reg.set_index("cluster")
@@ -62,10 +68,16 @@ def render() -> None:
     ok["forca"] = ok[f"coef_{var}"].abs()
     top = ok.sort_values("forca", ascending=False).head(3)
     st.markdown("#### As que mais respondem")
+    st.caption(
+        "A barra mostra a força da resposta (de 0 a 0,9). Resposta “forte” é acima de 0,5; "
+        "“moderada”, entre 0,2 e 0,5; “fraca”, abaixo de 0,2. O selo abaixo de cada família diz se "
+        "a relação é um achado ou apenas uma conferência do método (relação óbvia)."
+    )
     if top.empty:
         st.info("Nenhuma família responde de forma clara a este indicador.")
     else:
         rotulo = dict(zip(rot["cluster"].astype(int), rot["rotulo_curto"], strict=True))
+        classe = dict(zip(rot["cluster"].astype(int), rot["classe"], strict=True))
         cols = st.columns(len(top))
         for col, (cid, r) in zip(cols, top.iterrows(), strict=True):
             sentido = "mesmo sentido" if r[f"coef_{var}"] > 0 else "sentido oposto"
@@ -75,8 +87,10 @@ def render() -> None:
                     <div class="card rise">
                       <div class="kicker-s">Família {int(cid)}</div>
                       <h4>{style.esc(rotulo[int(cid)])}</h4>
-                      <p>Acompanha no <b>{sentido}</b>.</p>
+                      <p>Acompanha no <b>{sentido}</b>. Resposta <b>{_nivel(r["forca"])}</b>
+                      ({r["forca"]:.2f}).</p>
                       <div class="bar"><i style="width:{min(r["forca"] / 0.9, 1) * 100:.0f}%"></i></div>
+                      <p style="margin-top:.6rem">{style.pill(classe[int(cid)], "ok" if classe[int(cid)] == "Achado genuíno" else "")}</p>
                     </div>
                     """
                 )

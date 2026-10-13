@@ -76,10 +76,11 @@ def render() -> None:
     with aba2:
         st.caption("Aperte ▶ Reproduzir para ver a linha se desenhar de 1965 até hoje.")
         ui.plot(charts_story.centroide_animado(cen, sel, nomes, recessoes), key="cen_anim")
+    ui.guia("comparar")
 
     d = cen.loc[j[0] : j[1], sel]
     if len(sel) > 1:
         st.markdown("#### Quais famílias andam juntas?")
-        st.caption("Azul escuro = andam juntas; vermelho = andam em sentidos opostos.")
         ui.plot(charts.heatmap_familias(d.corr(), nomes), key="corr_fam")
+        ui.guia("comparar_corr", titulo="Como ler esta grade")
     ui.csv_download(d, "perfis_das_familias.csv", "Baixar os dados do gráfico", key="dl_cen")

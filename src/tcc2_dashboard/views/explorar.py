@@ -2,10 +2,29 @@
 
 from __future__ import annotations
 
+import numpy as np
+import pandas as pd
 import streamlit as st
 
-from tcc2_dashboard import charts, charts_story, data, style, textos, ui
+from tcc2_dashboard import charts, charts_story, data, explicacoes, style, textos, ui
 from tcc2_dashboard.config import K
+
+
+def _nota_zoom(d: pd.DataFrame) -> str:
+    """Avisa quando o zoom escondeu meses extremos, para ninguém achar que sumiram."""
+    lo, hi = np.nanquantile(d.to_numpy(), [0.005, 0.995])
+    pad = 0.25 * (hi - lo)
+    fora = d[((d < lo - pad) | (d > hi + pad)).any(axis=1)]
+    if fora.empty:
+        return ""
+    pior = fora.abs().max(axis=1).idxmax()
+    linha = fora.loc[pior]
+    val = linha.iloc[int(linha.abs().to_numpy().argmax())]
+    meses = ", ".join(f"{x:%m/%Y}" for x in fora.index[:6])
+    return (
+        f"“Ampliar” deixou {len(fora)} mês(es) fora do gráfico ({meses}). O mais extremo foi "
+        f"{pior:%m/%Y}, com {val:.1f}. Desligue “Ampliar” para ver tudo."
+    )
 
 
 def render() -> None:
@@ -41,7 +60,9 @@ def render() -> None:
         </div>
         """
     )
-    st.write("")
+    explica = explicacoes.CLASSE_EXPLICACAO.get(info["classe"])
+    if explica:
+        style.html(f'<div class="callout"><b>O que isso significa:</b> {ui.md(explica)}</div>')
 
     cen = data.centroides()
     rot = data.rotulo_curto()
@@ -70,8 +91,8 @@ def render() -> None:
     cids = [foco, *outras]
     st.markdown("#### Perfil médio da família ao longo do tempo")
     st.caption(
-        "Mostra a variação mensal média das séries da família, em desvios-padrão. "
-        "Picos e vales coincidem com crises e recuperações."
+        "Variação mensal média das séries da família, em desvios-padrão: "
+        "0 é um mês normal; valores altos ou baixos são meses fora do comum."
     )
     if modo == "Animação ao longo do tempo":
         ui.plot(charts_story.centroide_animado(cen, cids, rot, recess), key=f"anim_{foco}")
@@ -80,6 +101,11 @@ def render() -> None:
         ui.plot(
             charts.centroides(cen, cids, rot, janela, 1, recess, False, zoom), key=f"cen_{foco}"
         )
+    if zoom:
+        nota = _nota_zoom(cen[cids])
+        if nota:
+            st.caption(nota)
+    ui.guia("explorar_perfil")
 
     st.markdown("#### As séries desta família")
     m = info["membros"]
@@ -88,6 +114,7 @@ def render() -> None:
         f"Série mais típica: **{tipica['serie']}** — {tipica['descricao']}. "
         "“Quão típica” mostra o quanto cada série acompanha o perfil médio."
     )
+    ui.guia("explorar_series", titulo="Como ler esta lista")
     tab = m[["serie", "descricao", "categoria", "corr_centroide"]].rename(
         columns={
             "serie": "Código",

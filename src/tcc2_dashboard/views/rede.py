@@ -59,19 +59,28 @@ def render() -> None:
     m[0].metric("Fios", f"{r['n_arestas']:,}".replace(",", "."))
     m[1].metric("Entre séries da mesma família", f"{r['pct_dentro']:.0f}%")
     m[2].metric("Séries sem nenhum fio", r["isolados"])
-    m[3].metric("Fios que são de séries que andam juntas", f"{r['pct_positivas']:.0f}%")
+    de, en = r["densidade_dentro"], r["densidade_entre"]
+    m[3].metric(
+        "Vezes mais comum dentro",
+        f"{de / en:.0f}×" if en > 0 else "—",
+        help="Frequência de fios entre séries da mesma família dividida pela frequência de "
+        "fios entre famílias diferentes.",
+    )
 
     if arestas.empty:
         st.warning("Nenhum fio com esse critério. Diminua o limiar.")
+    else:
+        razao = f"{de / en:.0f} vezes" if en > 0 else "muito mais"
+        st.markdown(
+            f"Com este critério, ligações entre séries da **mesma família** são {razao} mais "
+            f"comuns do que entre famílias diferentes. {r['pct_dentro']:.0f}% dos fios ficam "
+            "dentro das famílias."
+        )
     ui.plot(
         charts.rede(pos, arestas, cl_de, nomes, pos_on, neg_on, destacar, False),
         key="rede",
     )
-    st.caption(
-        "Se a maioria dos fios liga séries da mesma família, o agrupamento está capturando "
-        "estrutura real. Passe o mouse em uma bolinha para ver o que a série mede. Mostra "
-        "semelhança, não causa e efeito."
-    )
+    ui.guia("rede")
 
     st.markdown("#### Séries mais conectadas")
     grau = (

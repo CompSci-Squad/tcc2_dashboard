@@ -214,12 +214,29 @@ ACHADOS: dict[int, dict[str, str]] = {
             "Quando a produção industrial cresce, os pedidos de seguro-desemprego, o desemprego "
             "de curta duração e os empréstimos às empresas tendem a recuar."
         ),
+        "hipotese": (
+            "Quando a produção cai, as empresas demitem e o desemprego e os pedidos de "
+            "seguro-desemprego sobem; também é comum que recorram a linhas de crédito. Quando "
+            "a produção cresce, o movimento se inverte."
+        ),
+        "cuidado": (
+            "A família mistura três ideias (desemprego, crédito e estoques), então a leitura é "
+            "mais ampla do que um único mecanismo. A estabilidade do grupo é baixa."
+        ),
     },
     4: {
         "titulo": "Juros de mercado e custo do crédito",
         "leitura": (
             "Os juros dos títulos do Tesouro, do papel comercial e das empresas andam junto com "
             "a taxa básica definida pelo banco central."
+        ),
+        "hipotese": (
+            "O banco central ajusta a taxa básica e os demais juros da economia (títulos do "
+            "Tesouro, papel comercial, títulos de empresas) se ajustam em seguida."
+        ),
+        "cuidado": (
+            "É o achado mais estável do estudo, mas juros de prazos diferentes tendem a andar "
+            "juntos por natureza; o que informa é que sigam a taxa básica de perto."
         ),
     },
     14: {
@@ -228,6 +245,14 @@ ACHADOS: dict[int, dict[str, str]] = {
             "A maior família do estudo (24 séries de empregos, consumo e vendas) sobe e desce "
             "junto com a produção industrial: é a economia real se movendo em bloco."
         ),
+        "hipotese": (
+            "Quando as fábricas produzem mais, contratam; com mais emprego e renda, o consumo e "
+            "as vendas também crescem. É o ciclo econômico visto por vários ângulos."
+        ),
+        "cuidado": (
+            "É uma família grande e variada (24 séries), então a relação é geral, não "
+            "específica de um setor. A estabilidade é média."
+        ),
     },
     18: {
         "titulo": "Câmbio e reservas dos bancos",
@@ -235,6 +260,15 @@ ACHADOS: dict[int, dict[str, str]] = {
             "O valor do dólar é o único indicador que acompanha este grupo, e explica cerca de três "
             "quartos do seu vai e vem. Ele reúne taxas de câmbio (iene, franco suíço, dólar "
             "canadense) e reservas bancárias."
+        ),
+        "hipotese": (
+            "O estudo mostra que o valor do dólar acompanha este grupo, mas não testa por quê. "
+            "A explicação econômica ainda precisa ser investigada."
+        ),
+        "cuidado": (
+            "Três das quatro séries são taxas de câmbio, e o índice do dólar usado como referência "
+            "é calculado a partir de uma cesta de moedas. Por isso, parte da relação já é esperada "
+            "pela construção. A estabilidade do grupo é baixa."
         ),
     },
 }

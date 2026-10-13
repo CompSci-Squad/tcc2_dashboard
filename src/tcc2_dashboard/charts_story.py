@@ -288,7 +288,12 @@ def sobreposicao(
             "font": {"color": style.tokens()["ink"]},
         },
     )
-    fig.update_yaxes(title="Variação padronizada")
+    fig.update_yaxes(title="Variação mensal (desvios-padrão)")
+    lo, hi = np.nanquantile(
+        np.concatenate([centro.to_numpy(), variavel.to_numpy()]), [0.005, 0.995]
+    )
+    pad = 0.25 * (hi - lo)
+    fig.update_yaxes(range=[lo - pad, hi + pad])
     return _base(fig, 430, hovermode="x unified", legend={"orientation": "h", "y": 1.14})
 
 

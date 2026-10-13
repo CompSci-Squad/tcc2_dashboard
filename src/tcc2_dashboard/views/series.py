@@ -49,6 +49,7 @@ def render() -> None:
         )
 
         ui.plot(charts.par_series(df, a, b, janela), key="par")
+        ui.guia("series_par")
         r = corr.loc[a, b]
         forca = (
             "muito parecidos"
@@ -60,7 +61,8 @@ def render() -> None:
         sentido = "no mesmo sentido" if r > 0 else "em sentidos opostos"
         style.html(
             f'<div class="callout"><b>{style.esc(a)}</b> e <b>{style.esc(b)}</b> são {forca} '
-            f"({style.esc(sentido)}). Estão em {'a mesma família' if cl_de[a] == cl_de[b] else 'famílias diferentes'}: "
+            f"({style.esc(sentido)}; semelhança {r:.2f} em uma escala de -1 a 1). "
+            f"Estão em {'a mesma família' if cl_de[a] == cl_de[b] else 'famílias diferentes'}: "
             f"{cl_de[a]} · {style.esc(rot[cl_de[a]])}"
             f"{'' if cl_de[a] == cl_de[b] else f' e {cl_de[b]} · {style.esc(rot[cl_de[b]])}'}.</div>"
         )
@@ -102,4 +104,4 @@ def render() -> None:
             key=lambda s: (cl_de[s], s),
         )
         ui.plot(charts.heatmap_correlacao(corr.loc[series, series], cl_de), key="heat_corr")
-        st.caption("Passe o mouse em um quadrado para ver o que cada série mede.")
+        ui.guia("series_heat", titulo="Como ler esta grade")

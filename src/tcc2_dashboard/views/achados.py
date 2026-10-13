@@ -63,16 +63,15 @@ def render() -> None:
         + "".join(_cartao(i + 1, c) for i, c in enumerate(CLUSTERS_ACHADO))
         + "</div>"
     )
-    st.caption(
-        "O círculo mostra quanto do vai e vem de cada família é explicado pelo indicador. "
-        "Passe o mouse sobre um código de série para ver o que ele mede."
-    )
+    st.caption("Passe o mouse sobre um código de série para ver o que ele mede.")
+    ui.guia("achados_cartoes", aberto=True, titulo="Como ler estes cartões")
 
     st.divider()
     st.subheader("Veja com os próprios olhos")
     st.caption(
-        "A linha cheia é a família; a pontilhada é o indicador de referência. Arraste o seletor abaixo do gráfico para dar zoom."
+        "Escolha um achado. A linha cheia é a família; a pontilhada é o indicador de referência."
     )
+    ui.guia("achados_grafico")
     abas = st.tabs([f"Achado {i + 1}" for i in range(len(CLUSTERS_ACHADO))])
     reg_x = data.regressores()
     cen = data.centroides()
@@ -104,6 +103,10 @@ def render() -> None:
                     st.caption(
                         "Atenção: aqui as duas linhas tendem a andar em sentidos **opostos**."
                     )
+                st.caption(
+                    "A escala está ampliada: os extremos de 2020 (pandemia) saem da tela. Dê duplo "
+                    "clique no gráfico para ver tudo."
+                )
             with c2:
                 st.markdown("##### Séries da família")
                 tab = info["membros"][["serie", "descricao", "corr_centroide"]].rename(
@@ -133,6 +136,15 @@ def render() -> None:
                         f"Estabilidade da família: {info['jaccard']:.0%} ({rot}). Mede se o grupo "
                         "se repete quando refazemos a análise embaralhando os meses."
                     )
+            style.html(
+                f"""
+                <div class="guia">
+                  <div class="g"><span>O que isso quer dizer</span><p>{style.esc(textos.interpretacao_numerica(info))}</p></div>
+                  <div class="g c"><span>Por que pode fazer sentido (hipótese)</span><p>{style.esc(ach["hipotese"])}</p></div>
+                  <div class="g w"><span>Cuidado nesta leitura</span><p>{style.esc(ach["cuidado"])}</p></div>
+                </div>
+                """
+            )
 
     st.divider()
     with st.expander("E os outros grupos com relação forte?"):

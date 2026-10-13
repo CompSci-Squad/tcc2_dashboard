@@ -48,7 +48,7 @@ def render() -> None:
 
     with aba1:
         ui.plot(charts.heatmap_coeficientes(reg, variaveis, alpha, so_sig, rot), width="stretch")
-        st.caption("* = significativo ao nível escolhido. Todos os dados estão padronizados.")
+        ui.guia("regressao_mapa", titulo="Como ler este mapa")
         v = data.vif()
         with st.expander("VIF das variáveis de referência (multicolinearidade)"):
             st.dataframe(v, hide_index=True, width="stretch")
@@ -58,11 +58,28 @@ def render() -> None:
         foco = ui.seletor_foco(key="reg")
         linha = reg.loc[reg["cluster"] == foco].iloc[0]
         m = st.columns(5)
-        m[0].metric("R²", f"{linha['r_squared']:.3f}")
-        m[1].metric("Observações", int(linha["n_obs"]))
-        m[2].metric("Durbin-Watson", f"{linha['durbin_watson']:.2f}")
-        m[3].metric("Breusch-Godfrey p", f"{linha['bg_pvalue']:.1e}")
-        m[4].metric("Teste F (p)", f"{linha['f_pvalue']:.1e}")
+        m[0].metric(
+            "R²",
+            f"{linha['r_squared']:.3f}",
+            help="Parte do vai e vem da família explicada (0 a 1).",
+        )
+        m[1].metric("Observações", int(linha["n_obs"]), help="Meses usados na regressão.")
+        m[2].metric(
+            "Durbin-Watson",
+            f"{linha['durbin_watson']:.2f}",
+            help="Perto de 2: os erros do modelo não têm memória. Bem abaixo de 2: um erro tende a "
+            "repetir no mês seguinte (autocorrelação).",
+        )
+        m[3].metric(
+            "Breusch-Godfrey p",
+            f"{linha['bg_pvalue']:.1e}",
+            help="p pequeno = há autocorrelação nos erros. Por isso usamos erro-padrão robusto (HAC).",
+        )
+        m[4].metric(
+            "Teste F (p)",
+            f"{linha['f_pvalue']:.1e}",
+            help="p pequeno = os seis indicadores, juntos, explicam algo além do acaso.",
+        )
         tab = pd.DataFrame(
             {
                 "coef": [linha[f"coef_{v}"] for v in variaveis],
@@ -142,4 +159,5 @@ def _regressao_ao_vivo() -> None:
     m[3].metric("Breusch-Godfrey p", f"{r.bg_p:.1e}")
     ui.plot(charts.coeficientes_cluster(r.tabela, ALPHA), width="stretch")
     ui.plot(charts.residuos(r.residuos), width="stretch")
+    ui.guia("regressao_vivo", titulo="Como ler esta regressão")
     st.dataframe(r.tabela, width="stretch")

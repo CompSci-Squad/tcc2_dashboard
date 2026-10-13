@@ -190,6 +190,16 @@ code {{ background: var(--primary-soft); color: var(--primary-ink); border-radiu
   padding: .9rem 1.1rem; margin: .6rem 0 1rem; color: var(--ink); }}
 .callout b {{ color: var(--primary-ink); }}
 
+/* guia de leitura: o que vê / como ler / cuidado */
+.guia {{ display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: .8rem; margin: .2rem 0 .4rem; }}
+.guia .g {{ border-radius: 14px; padding: .8rem 1rem; background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--primary); }}
+.guia .g.c {{ border-top-color: var(--ok); }}
+.guia .g.w {{ border-top-color: var(--warn); }}
+.guia .g > span {{ display: block; font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: .3rem; }}
+.guia .g p, .guia .g li {{ margin: .15rem 0; font-size: .92rem; line-height: 1.45; color: var(--ink); }}
+.guia .g ul {{ margin: 0; padding-left: 1.1rem; }}
+@media (max-width: 900px) {{ .guia {{ grid-template-columns: 1fr; }} }}
+
 /* ---------- widgets ---------- */
 [data-testid="stMetric"] {{ background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem .8rem;
   box-shadow: 0 1px 2px var(--shadow); position: relative; }}
